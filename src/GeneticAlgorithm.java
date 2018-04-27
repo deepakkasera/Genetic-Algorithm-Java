@@ -192,7 +192,25 @@ public class GeneticAlgorithm {
         return result;
     }
 
-    
+
+    public static void  convertColorArrayToImage(int[][] color,int generaion,String imageName,String directory){
+        String current = imageName;
+        String path = directory + current + "-" + Integer.toString(generaion) + ".jpg";
+        BufferedImage image = new BufferedImage(color[0].length, color.length, BufferedImage.TYPE_INT_RGB);
+
+        for(int i = 0; i < color.length; i++){
+            for(int j = 0; j < color[0].length; j++){
+                image.setRGB(i, j, color[i][j]);
+            }
+        }
+
+        File ImageFile = new File(path);
+        try {
+            ImageIO.write(image, "jpg", ImageFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 //    public static void convertColorArrayToImage(){
 //        File ImageFile = new File();
