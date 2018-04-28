@@ -206,9 +206,9 @@ public class GeneticAlgorithm {
     }
 
 
-    public static void  convertColorArrayToImage(int[][] color,int generaion,String imageName,String directory){
+    public static void  convertColorArrayToImage(int[][] color, int generation, int member,String imageName, String directory){
         String current = imageName;
-        String path = directory + current + "-" + Integer.toString(generaion) + ".jpg";
+        String path = directory + current + "-" + Integer.toString(generation) + ".jpg";
         BufferedImage image = new BufferedImage(color[0].length, color.length, BufferedImage.TYPE_INT_RGB);
 
         for(int i = 0; i < color.length; i++){
@@ -311,6 +311,98 @@ public class GeneticAlgorithm {
         }
     }
 
+    public static void crossover(){
+        int member;
+        int one = 0;
+        int first = 0;
+        double x;
+
+        for(member = 0; member < POPSIZE; member++){
+            Random randomGenerator = new Random();
+            x = (randomGenerator.nextInt(1000)) / 1000.0;
+            if(x < PXOVER){
+                ++first;
+                if((first & 1) == 0){
+                        XOVER(one,member);
+                }
+                else{
+                    one = member;
+                }
+            }
+        }
+    }
+
+    public static void XOVER(int one,int two){
+        Genotype first = new Genotype(population[one]);
+        Genotype second = new Genotype(population[two]);
+
+        Random randomGenerator = new Random();
+        int k = randomGenerator.nextInt(first.circles.length);
+
+        for(int i = 0; i < k; i++){
+            Circle temp = new Circle(first.circles[i]);
+            first.circles[i] = new Circle(second.circles[i]);
+            second.circles[i] = new Circle(temp);
+        }
+
+        population[one] = new Genotype(first);
+        population[two] = new Genotype(second);
+        return;
+    }
+
+    //After a crossover is performed, mutation take place.
+    // This is to prevent falling all solutions in
+    // population into a local optimum of solved problem.
+    // Mutation changes randomly the new offspring
+    public static void  mutate(){
+        for(int member = 0; member < POPSIZE; member++){
+            Random randomGenerator = new Random();
+            for(int j = 0; j < circleCount; j++){
+                double x = (randomGenerator.nextInt(1000)) / 1000.0;
+
+                if(x < PMUTATION){
+                    x = (randomGenerator.nextInt(1000))/1000.0;
+                    if(x < PMUTATIONCOLOR){
+
+                        //Randomly change the x coordinate of the j'th circle
+
+                        population[member].circles[j].x = randomGenerator.nextInt(row);
+                    }
+
+                    x = (randomGenerator.nextInt(1000))/1000.0;
+                    if(x < PMUTATIONCOLOR){
+                        population[member].circles[j].y = randomGenerator.nextInt(col);
+                    }
+
+                    x = (randomGenerator.nextInt(1000))/1000.0;
+                    if(x < PMUTATIONCOLOR){
+                        population[member].circles[j].red = randomGenerator.nextInt(255);
+                    }
+
+                    x= randomGenerator.nextInt(10000) / 10000.0;
+                    if(x < PMUTATIONCOLOR) {
+                        population[member].circles[j].green = new Integer(randomGenerator.nextInt(255));
+                    }
+                    x= randomGenerator.nextInt(10000) / 10000.0;
+                    if(x < PMUTATIONCOLOR) {
+                        population[member].circles[j].blue = new Integer(randomGenerator.nextInt(255));
+                    }
+                    x= randomGenerator.nextInt(10000) / 10000.0;
+                    if(x < PMUTATIONCOLOR) {
+                        population[member].circles[j].alpha = new Integer(randomGenerator.nextInt(255));
+                    }
+                    x= randomGenerator.nextInt(10000) / 10000.0;
+                    if(x < PMUTATION) {
+                        population[member].circles[j].radius = new Integer(randomGenerator.nextInt(RADIUSLIMIT));
+                    }
+                    x= randomGenerator.nextInt(10000) / 10000.0;
+                    if(x < PMUTATION) {
+                        population[member].circles[j].time = new Integer(randomGenerator.nextInt(10000));
+                    }
+                }
+            }
+        }
+    }
 
     public static void selector(){
 
@@ -365,7 +457,7 @@ public class GeneticAlgorithm {
 
 
     public static void main(String[] args) throws IOException {
-        PrintWriter printWriter = new PrintWriter(args[1] + "info.txt", "UTF-8");
+        PrintWriter printWriter = new PrintWriter(args[0]+"info.txt", "UTF-8");
 
         printWriter.println("First line");
         printWriter.println("POPSIZE=" + Integer.toString(POPSIZE));
@@ -405,9 +497,36 @@ public class GeneticAlgorithm {
         best.Print();
 
         double old_fitness = -1;
-        for(int generations = 0; generations < MAXGENS; generations++){
+        for(int generation = 0; generation < MAXGENS; generation++){
             selector();
-                
+
+            //Crossover
+            crossover();
+
+            //mutate
+            mutate();
+
+            //evaluate the new population
+            evaluate();
+
+            elitist();
+
+            best = new Genotype(population[POPSIZE]);
+            double new_fitness = best.getFitness(result);
+            if(old_fitness!=new_fitness)
+            {
+                int answer[][] = new int[row][col];
+                for(int i = 0 ; i < row ; i++) {
+                    for(int j = 0 ; j < col ; j++) {
+                        Color c = population[POPSIZE].getColorOfPoint(i, j);
+                        answer[i][j] = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+                        //answer[i][j] = (c.getRed() << 24) | (c.getGreen() << 16) | (c.getBlue() << 8) | c.getAlpha();
+                    }
+                }
+                convertColorArrayToImage(answer, generation,POPSIZE,args[0], "/home/deepak/GeneticAlgorithm");
+            }
+            old_fitness = new_fitness;
+            System.out.println(generation + "\t" + population[POPSIZE].fitness);
         }
 
     }
