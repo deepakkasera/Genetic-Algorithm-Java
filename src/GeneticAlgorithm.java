@@ -407,7 +407,7 @@ public class GeneticAlgorithm {
         double old_fitness = -1;
         for(int generations = 0; generations < MAXGENS; generations++){
             selector();
-            
+                
         }
 
     }
