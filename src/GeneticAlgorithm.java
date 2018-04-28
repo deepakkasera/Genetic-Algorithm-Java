@@ -1,6 +1,8 @@
 /**
  * Created by deepak on 27/4/18.
  */
+import com.sun.org.apache.bcel.internal.generic.POP;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -128,7 +130,18 @@ class Genotype{
     }
 
     public void Print(){
-
+        for(int i=0;i<-1;++i)
+        {
+            Circle temp = new Circle(circles[i]);
+            System.out.println("x = "+Integer.toString(temp.x)+
+                                " |y = "+Integer.toString(temp.y)+
+                                " |radius = "+Integer.toString(temp.radius) + " " +
+                                " |red= "+ Integer.toString(temp.red) +
+                                " |green = "+ Integer.toString(temp.green)+
+                                " |blue= "+Integer.toString(temp.blue)+
+                                " |alpha= "+Float.toString(temp.alpha)+" " +
+                                " |time= "+Integer.toString(temp.time));
+        }
     }
 }
 
@@ -212,8 +225,190 @@ public class GeneticAlgorithm {
         }
     }
 
+    //Initial Population initialize function
+    public static void initialize(){
+        population = new Genotype[POPSIZE + 1];
+        newpopulation = new Genotype[POPSIZE + 1];
+
+        Random randomGenerator = new Random();
+
+        for(int i = 0; i <= POPSIZE; i++){
+            population[i] = new Genotype();
+            newpopulation[i] = new Genotype();
+
+            population[i].count = circleCount;
+            for(int j = 0; j < circleCount; j++){
+                population[i].circles[j].x = new Integer(randomGenerator.nextInt(row));
+                population[i].circles[j].y = new Integer(randomGenerator.nextInt(col));
+                population[i].circles[j].blue = new Integer(randomGenerator.nextInt(255));
+                population[i].circles[j].red = new Integer(randomGenerator.nextInt(255));
+                population[i].circles[j].green = new Integer(randomGenerator.nextInt(255));
+                population[i].circles[j].alpha = new Integer(randomGenerator.nextInt(255));
+                population[i].circles[j].radius = new Integer(randomGenerator.nextInt(RADIUSLIMIT));
+                population[i].circles[j].time = new Integer(randomGenerator.nextInt(10000));
+
+            }
+
+            population[i].bg_red = 255;
+            population[i].bg_blue = 255;
+            population[i].bg_green = 255;
+            population[i].bg_alpha = 0;
+        }
+    }
+
+    public static void keep_the_best(){
+        int curr_best = 0;
+
+        for(int i = 1; i <= POPSIZE; i++){
+            if(population[i].fitness > population[curr_best].fitness){
+                curr_best = i;
+            }
+        }
+
+        population[POPSIZE] = new Genotype(population[curr_best]);
+    }
+
+
+    public static void evaluate(){
+        for(int member = 0; member < POPSIZE; member++){
+            population[member].getFitness(result);
+        }
+    }
+
+
+    public static void elitist(){
+        double best;
+        int best_member = 0;
+        double worst;
+        int worst_member = 0;
+
+        best = population[0].fitness;
+        worst = population[0].fitness;
+
+        for(int i = 0; i < POPSIZE; i++){
+            if(population[i].fitness > best){
+                best = population[i].fitness;
+                best_member = i;
+            }
+            if(population[i].fitness < worst){
+                worst = population[i].fitness;
+                worst_member = i;
+            }
+        }
+
+        /* If the best individual from the new population is better than
+           the best individual from the previous population then copy the
+           best individual from the new population; else replace the worst
+           individual from the current population with the best one from
+           the previous generation
+         */
+
+        if(best >= population[POPSIZE].fitness){
+            population[POPSIZE] = new Genotype(population[best_member]);
+        }
+        else{
+            population[worst_member] = new Genotype(population[POPSIZE]);
+        }
+    }
+
+
+    public static void selector(){
+
+        //find the total fitness of the population
+        double sum = 0.0;
+        for(int member = 0; member < POPSIZE; member++){
+            sum = sum + population[member].fitness;
+        }
+
+        //find the relative fitness
+        for(int member = 0; member < POPSIZE; member++){
+            population[member].rfitness = population[member].fitness/sum;
+        }
+
+        //Find the cummulative fitness
+        population[0].cfitness = population[0].rfitness;
+        for(int member = 1; member < POPSIZE; member++){
+            population[member].cfitness = population[member-1].cfitness + population[member].rfitness;
+        }
+
+        // Select survivors using cumulative fitness.
+
+        for(int i = 0; i < POPSIZE; i++){
+            Random randomGenerator = new Random();
+            double p = (randomGenerator.nextInt(1000)) / 1000.0;
+            if(p < population[0].cfitness){
+                newpopulation[i] = new Genotype(population[0]);
+            }
+            else{
+                for(int j = 0; j < POPSIZE; j++){
+                    if(p >= population[j].fitness && p < population[j+1].fitness){
+                        newpopulation[i] = new Genotype(population[j+1]);
+                        break;
+                    }
+                }
+            }
+        }
+
+        //	Once a new population is created, copy it back
+        //
+        // System.out.println("New pop");
+        // for(i = 0; i < POPSIZE; i++) {
+        // 	System.out.println(newpopulation[i].fitness);
+        // 	population[i] = new Genotype(newpopulation[i]);
+        // }
+    }
+
+
 //    public static void convertColorArrayToImage(){
 //        File ImageFile = new File();
 //    }
 
+
+    public static void main(String[] args) throws IOException {
+        PrintWriter printWriter = new PrintWriter(args[1] + "info.txt", "UTF-8");
+
+        printWriter.println("First line");
+        printWriter.println("POPSIZE=" + Integer.toString(POPSIZE));
+        printWriter.println("MAXGENS=" + Integer.toString(MAXGENS));
+        printWriter.println("circleCount=" + Integer.toString(circleCount));
+        printWriter.println("RADIUSLIMIT=" + Integer.toString(RADIUSLIMIT));
+        printWriter.println("PXOVER=" + Double.toString(PXOVER));
+        printWriter.println("PMUTATION=" + Double.toString(PMUTATION));
+        printWriter.println("PMUTATIONCOLOR=" + Double.toString(PMUTATIONCOLOR));
+
+        printWriter.close();
+
+
+        BufferedImage image = ImageIO.read(GeneticAlgorithm.class.getResource(args[0] + ".jpg"));
+        result = convertTo2D(image);
+        row = result.length;
+        col = result[0].length;
+        Genotype best = null;
+
+
+        //Iniatilazation of population
+        initialize();
+
+        System.out.println("After Initialization");
+        best = new Genotype(population[POPSIZE]);
+        best.Print();
+
+        //evaluation of fitness of members
+        evaluate();
+        System.out.println("After evaluate");
+        best = new Genotype(population[POPSIZE]);
+        best.Print();
+
+        keep_the_best();
+        System.out.println("After keep_the_best");
+        best = new Genotype(population[POPSIZE]);
+        best.Print();
+
+        double old_fitness = -1;
+        for(int generations = 0; generations < MAXGENS; generations++){
+            selector();
+            
+        }
+
+    }
 }
